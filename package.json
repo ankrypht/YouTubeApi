@@ -11,9 +11,7 @@
   "license": "ISC",
   "dependencies": {
     "bgutils-js": "^3.1.3",
-    "express": "^4.20.0",
     "jsdom": "^26.0.0",
-    "node-fetch": "^2.7.0",
     "youtubei.js": "^13.0.0"
   }
 }
