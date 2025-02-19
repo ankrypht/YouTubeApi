@@ -1,47 +1,73 @@
-const express = require('express');
-const ytdl = require('@distube/ytdl-core');
+const { BG } = require("bgutils-js");
+const { JSDOM } = require("jsdom");
+const { Innertube } = require("youtubei.js");
+const express = require("express");
+const fetch = require("node-fetch"); // if your Node version doesn't include fetch
 const app = express();
 
-app.get('/stream', async (req, res) => {
-    const videoURL = req.query.url;
+(async () => {
+    // Create a barebones Innertube instance to get a visitor data string from YouTube.
+    let innertube = await Innertube.create({ retrieve_player: false });
+    const requestKey = "O43z0dpjhgX20SCx4KAo";
+    const visitorData = innertube.session.context.client.visitorData;
+    if (!visitorData)
+        throw new Error("Could not get visitor data");
 
-    if (!videoURL) {
-        return res.status(400).send('No video URL provided');
+    // Create a JSDOM instance to simulate a browser DOM.
+    const dom = new JSDOM();
+    Object.assign(globalThis, {
+        window: dom.window,
+        document: dom.window.document,
+    });
+
+    // Prepare the bgConfig object.
+    const bgConfig = {
+        fetch: (input, init) => fetch(input, init),
+        globalObj: globalThis,
+        identifier: visitorData,
+        requestKey,
+    };
+
+    // Create the BG challenge.
+    const bgChallenge = await BG.Challenge.create(bgConfig);
+    if (!bgChallenge)
+        throw new Error("Could not get challenge");
+
+    const interpreterJavascript =
+        bgChallenge.interpreterJavascript.privateDoNotAccessOrElseSafeScriptWrappedValue;
+    if (interpreterJavascript) {
+        new Function(interpreterJavascript)();
+    } else {
+        throw new Error("Could not load VM");
     }
 
-    try {
-        const info = await ytdl.getInfo(videoURL);
-        const format = ytdl.chooseFormat(info.formats, { quality: 'highestaudio' });
+    // Generate the poToken.
+    const poTokenResult = await BG.PoToken.generate({
+        program: bgChallenge.program,
+        globalName: bgChallenge.globalName,
+        bgConfig,
+    });
 
-        // Set headers to support streaming
-        res.setHeader('Content-Type', 'audio/mpeg');
-        res.setHeader('Content-Disposition', `inline; filename="audio.mp3"`); // Use inline instead of attachment for streaming
-        res.setHeader('Cache-Control', 'no-cache');
-        res.setHeader('Accept-Ranges', 'bytes');
+    //const placeholderPoToken = BG.PoToken.generatePlaceholder(visitorData);
 
-        // Handle range requests for partial content
-        const range = req.headers.range;
-        if (range) {
-            const start = Number(range.replace(/\D/g, ""));
-            const fileSize = format.contentLength || 0;
-            const end = Math.min(fileSize - 1, start + (1e6 - 1)); // 1 MB chunk size
+    /* console.info("Session Info:", {
+         visitorData,
+         placeholderPoToken,
+         poToken: poTokenResult.poToken,
+         integrityTokenData: poTokenResult.integrityTokenData,
+     });
+ */
+    // Define the /data endpoint that sends the desired information.
+    app.get("/data", async (req, res) => {
+        res.json({
+            visitorData,
+            poToken: poTokenResult.poToken,
+        });
+    });
 
-            res.setHeader('Content-Range', `bytes ${start}-${end}/${fileSize}`);
-            res.setHeader('Content-Length', end - start + 1);
-            res.status(206); // Partial content status
-        } else {
-            res.setHeader('Content-Length', format.contentLength);
-        }
-
-        ytdl(videoURL, { format }).pipe(res);
-    } catch (err) {
-        console.error(err);
-        res.status(500).send('Error processing video');
-    }
-});
-
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}`);
-});
-
+    // Start the server.
+    const PORT = process.env.PORT || 3000;
+    app.listen(PORT, () => {
+        console.log(`Server is running on port ${PORT}`);
+    });
+})();
