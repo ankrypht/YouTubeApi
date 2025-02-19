@@ -6,6 +6,7 @@ const fetch = require("node-fetch"); // if your Node version doesn't include fet
 const app = express();
 
 (async () => {
+    app.get("/data", async (req, res) => {
     // Create a barebones Innertube instance to get a visitor data string from YouTube.
     let innertube = await Innertube.create({ retrieve_player: false });
     const requestKey = "O43z0dpjhgX20SCx4KAo";
@@ -58,11 +59,15 @@ const app = express();
      });
  */
     // Define the /data endpoint that sends the desired information.
-    app.get("/data", async (req, res) => {
+
         res.json({
             visitorData,
             poToken: poTokenResult.poToken,
         });
+    });
+
+    app.get('/', function (req, res) {
+        res.send("I'm alive");
     });
 
     // Start the server.
