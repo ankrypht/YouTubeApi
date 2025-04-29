@@ -11,7 +11,7 @@
   "license": "ISC",
   "dependencies": {
     "bgutils-js": "^3.2.0",
-    "jsdom": "^26.0.0",
-    "youtubei.js": "^13.2.0"
+    "jsdom": "^26.1.0",
+    "youtubei.js": "^13.4.0"
   }
 }
