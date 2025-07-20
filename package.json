@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "start": "node index.js"
+    "start": "ts-node index.ts"
   },
   "keywords": [],
   "author": "",
@@ -12,6 +12,12 @@
   "dependencies": {
     "bgutils-js": "^3.2.0",
     "jsdom": "^26.1.0",
-    "youtubei.js": "^13.4.0"
+    "youtubei.js": "^15.0.0"
+  },
+  "devDependencies": {
+    "@types/jsdom": "^21.1.7",
+    "@types/node": "^24.0.15",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.8.3"
   }
 }
